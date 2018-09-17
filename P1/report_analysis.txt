@@ -1,0 +1,100 @@
+Report 1:
+row meanings
+-------------------
+single term index: STI
+stem index: SI
+phrase index: PI
+single term positional index: STPI
+
+col meanings
+-------------------
+lexicon size(# of terms): lex_s
+index size(byte): idx_s
+
+		lex_s	idx_s(KB)	max_df	min_df	mean_df  median_df
+------------------------------------------------------------------
+STI     41655		9968	4365		1	  18.06		2
+------------------------------------------------------------------
+SI 		32296		8224	5666		1	  22.78		1
+------------------------------------------------------------------
+PI 		228899		12642	740			1	  1.94		1
+------------------------------------------------------------------
+STPI	40379		20216	85076		1	  37.51		2
+------------------------------------------------------------------
+
+Report 2:
+
+STI:
+tuple_size		1000		10000		100000		unlimited
+Time (ms)
+-------------------------------------------------------------
+create_files  63794.3	  60826.17 		62058.01	58264.18
+-------------------------------------------------------------
+merge_files	   3078.48	   2797.19		 2609.7		  156.24
+-------------------------------------------------------------
+total		  66872.77	  63623.36		64667.72	58420.52
+-------------------------------------------------------------
+
+SI:
+tuple_size		1000		10000		100000		unlimited
+Time (ms)
+-------------------------------------------------------------
+create_files 81745.48	  73756.88		74172.95	70625.16
+-------------------------------------------------------------
+merge_files	  2828.43	   2422.15		 2156.43	  140.64
+-------------------------------------------------------------
+total		 84573.9	  76179.03		75329.39	70765.8
+-------------------------------------------------------------
+
+PI:
+tuple_size		1000		10000		100000		unlimited
+Time (ms)
+-------------------------------------------------------------
+create_files  63358.67	  53900.62		52839.87	52513.12
+-------------------------------------------------------------
+merge_files	   4941.88	   3641.09		 3531.67	  875.11
+-------------------------------------------------------------
+total		  68300.55    57541.71		56371.54	53388.23
+-------------------------------------------------------------
+
+STPI:
+tuple_size		1000		10000		100000		unlimited
+Time (ms)
+-------------------------------------------------------------
+create_files 62466.09	  59122.15		56279.93	54729.53
+-------------------------------------------------------------
+merge_files	  4922.46	   4313.01		 4750.6		   46.88
+-------------------------------------------------------------
+total		 67388.55	  63435.16		61030.53	54776.41
+-------------------------------------------------------------
+
+1. The more tuples allowed in the memory, the faster the program runs. Reading and writing to temporary files takes considerable running time. My merge function will check if there is only one file to merge, it will simply make a copy of that temporary file to the output directory.
+
+2. Phrase index and positional index occupies much more space than single index and stem index. Because positional index includes stop words, its mean df is considerably larger than single index. Stop words usually have a large df.
+
+3. I implement the n-way merge using a heap. The time complexity is O(n*log(n)). Merge part takes much less time than creating temporary files. Creating temporary files time complexity is O(n). Because there are many cases to consider, it actually takes much more time than merging.
+
+4. The term frequency distribution matches the Zipf's law. The median df is only 1 or 2, which is much smaller than the mean df. The max_df is very large.
+
+5. I also created a frequent phrase index and a file listing all the frequent phrase. You can change the df limit by editing the second parameter in function createFrequentPhraseIndex(). I set the number to 70.
+
+df limit	# of phrases
+------------------------
+10			4472
+20			1585
+30			859
+40			538
+50			360
+60			266
+70			198
+80			168
+90			148
+100			120
+110			94
+120			81
+130			69
+140			56
+150			50
+...			...
+
+It seems that df limit is not the best way to identify phrase. Some nonsense phrases have a large df. The higher the limit is, the more accurate the phrases are, but less valid phrases will be included. It is a matter of accuracy and precision.

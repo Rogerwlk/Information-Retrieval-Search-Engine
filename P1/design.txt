@@ -1,0 +1,81 @@
+Input:
+1. Get all the files under input directory.
+2. Every time a file is opened, read the file line by line.
+
+Processing:
+1. Preprocessing order is as follows:
+  a. Convert html escape sequence. 
+  b. Remove html tag and comments.
+  c. Convert to lowercase characters.
+  d. Get the email, (store it in single term index,) replace it with comma.
+  e. Get the url, (store it in STI,) replace it with comma.
+  f. Get the file name, (store name and extension in STI,) replace it with comma
+  g. Convert dot acronym to acronym without dot. (ph.d -> phd)
+  h. Get the date, check the date, (store it in STI,) replace it with comma.
+  i. Format number. (1,000 -> 1000; 2.0 -> 2)
+  j. Get the digit-alpha, (store it and length larger than 2's alpha part in STI,) replace it with comma.
+  h. Get the alpha-digit, (store it and length larger than 2's alpha part in STI,) replace it with comma.
+  i. Get the word with hyphenated prefix, (store it and the stem in STI,) replace it with comma.
+  j. Get the ip, (store it in STI,) replace it with comma.
+
+Reasons for this order:
+General preprocessing like a, b, c should be in the begining.
+
+d has @ character, so it won't be mixed with others.
+
+e has special beginning like http, so it won't be mixed with others. It has dots, so it must be done before g (ph.d -> phd).
+
+f file extension is specified, so it won't be mixed with others. (Interesting fact: I put .c as a C program file. However, there is a term called u.s.c "United States Code" which messed up the index table, so I discard .c as a file extension.) It must be done before g (ph.d -> phd).
+
+i must be done before j, because i has special prefixes and they both have hyphen.
+
+The rest is very specific and won't be mixed.
+
+Replace these preprocessed token with comma, because these special token will only appear in single term index and comma is a stop word for holding positions. (I modify the stops.txt and add all the punctuations in the end. Use "tail stops.txt -n 40" to check.)
+
+2. Use nltk to tokenize word. I have used it before and it is the best tokenizer!
+
+3. Use nltk porter stemmer to stem words (including stop words).
+
+4. Because a phrase may cross two lines, I store the last two words of each line to create a phrase with next line.
+
+5. Use a variable to keep track of word's position in document.
+
+6. Always check the size of the index after editing the index. If the size pass the size limit, store everything into a file and clear the index. To make sure the file name is unique, I use four variables for four index types. They can also keep track of the number of file stored.
+
+7. I use Counter data structure to store single, stem, and phrase index. Counter's value is term frequency. Counter's key is a tuple (term, docno), so it can be sorted first by term, then by docno.
+
+8. I use OrderedDict data structure to store positional index. OrderedDict's value is a list. The list's first element is term frequency. The rest elements in the list are appeared positions in document. OrderedDict's key is a tuple (term, docno), so each entry will be stored in order of term, docno.
+
+9. Regex for date is rigorous and long, so I put them in several lines compiled with verbose mode.
+
+10. I use regex group frequently to reduce matched string reproduction and speed up program.
+
+11. I find common file extensions (https://www.computerhope.com/issues/ch001789.htm) and prefixes (https://www.thoughtco.com/common-prefixes-in-english-1692724  and  http://teacher.scholastic.com/reading/bestpractices/vocabulary/pdf/prefixes_suffixes.pdf) online. They deserve the credit.
+
+12. I find the ip regex online (www.regular-expressions.info/ip.html).
+
+13. I store all the intermediary files in the "tmp" directory and the program will clean up the directory before storing files inside, so I don't allow "tmp" to appear in input or output directory.
+
+Merge:
+1. Open every file under "tmp" directory and categorize them to the lists.
+
+2. Use a heap to find the minimum among all the files' one entry. Once the minimum item is popped, a new item from the same file as minimum item is pushed onto the heap. To keep track of the file the minimum item comes from, I add an extra idx at the end of the parsed list.
+
+3. Always store the previous popped item to check if its key tuple is the same as the new popped item. If so, two items are combined into the previous popped item. If not, the previous popped item is written to the file, and the new popped item is stored as previous popped item.
+
+4. There is an extra position list to merge and write for positional index, so I add a pos_idx_flag to reuse as much code as possible.
+
+Output:
+single -> single_term_idx.txt
+term, docno, term freq
+
+stem -> stem_idx.txt
+stem, docno, stem freq
+
+phrase -> phrase_idx.txt, freq_phrase_idx.txt
+phrase, docno, phrase freq
+(Phrases are made up of 2-3 words. Frequent phrase has frequency no smaller than 5.)
+
+positional -> single_term_pos_idx.txt
+term, docno, term freq, list of positions
